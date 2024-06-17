@@ -1,0 +1,77 @@
+<!-- resources/views/cart.blade.php -->
+@extends('layouts.app')
+
+@section('content')
+<div class="container">
+    <h1>Your Cart</h1>
+    @if ($cartItems->count())
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($cartItems as $item)
+                    <tr>
+                        <td>{{ $item->product->name }}</td>
+                        <td>
+                            <button class="btn btn-secondary update-qty" data-id="{{ $item->id }}" data-action="subtract">-</button>
+                            <span class="quantity">{{ $item->quantity }}</span>
+                            <button class="btn btn-secondary update-qty" data-id="{{ $item->id }}" data-action="add">+</button>
+                        </td>
+                        <td>
+                            <form action="{{ route('cart.remove', $item->id) }}" method="POST" class="d-inline">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-danger">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @else
+        <p>Your cart is empty.</p>
+    @endif
+</div>
+@endsection
+
+@section('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.update-qty').forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+
+                let id = this.getAttribute('data-id');
+                let action = this.getAttribute('data-action');
+                let quantityElement = this.closest('td').querySelector('.quantity');
+                let currentQty = parseInt(quantityElement.textContent);
+
+                let newQty = action === 'add' ? currentQty + 1 : currentQty - 1;
+                if (newQty < 1) newQty = 1;
+
+                fetch(`/cart/update/${id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ quantity: newQty })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    quantityElement.textContent = newQty;
+                    alert(data.message);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            });
+        });
+    });
+</script>
+@endsection
