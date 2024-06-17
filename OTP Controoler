@@ -1,0 +1,64 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Twilio\Rest\Client;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Validator;
+
+class OTPController extends Controller
+{
+    protected $twilio;
+
+    public function __construct()
+    {
+        $this->twilio = new Client(config('services.twilio.sid'), config('services.twilio.token'));
+    }
+
+    public function sendOTP(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'phone' => 'required|numeric'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 422);
+        }
+
+        $phone = $request->input('phone');
+        $otp = rand(100000, 999999);
+
+        Cache::put($phone, $otp, now()->addMinutes(5));
+
+        $this->twilio->messages->create($phone, [
+            'from' => config('services.twilio.phone_number'),
+            'body' => "Your OTP is $otp"
+        ]);
+
+        return response()->json(['message' => 'OTP sent successfully.']);
+    }
+
+    public function verifyOTP(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'phone' => 'required|numeric',
+            'otp' => 'required|numeric'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 422);
+        }
+
+        $phone = $request->input('phone');
+        $otp = $request->input('otp');
+
+        if (Cache::get($phone) == $otp) {
+            // Login the user or mark the OTP as verified
+            Cache::forget($phone);
+            return response()->json(['message' => 'OTP verified successfully.']);
+        }
+
+        return response()->json(['error' => 'Invalid OTP.'], 401);
+    }
+}
