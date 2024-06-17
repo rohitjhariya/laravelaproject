@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login with OTP</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <form id="send-otp-form">
+        <input type="text" name="phone" placeholder="Enter your phone number" required>
+        <button type="submit">Send OTP</button>
+    </form>
+
+    <form id="verify-otp-form" style="display:none;">
+        <input type="text" name="otp" placeholder="Enter OTP" required>
+        <button type="submit">Verify OTP</button>
+    </form>
+
+    <script>
+        $('#send-otp-form').on('submit', function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: '/send-otp',
+                method: 'POST',
+                data: $(this).serialize(),
+                success: function(response) {
+                    alert(response.message);
+                    $('#send-otp-form').hide();
+                    $('#verify-otp-form').show();
+                },
+                error: function(response) {
+                    alert('Error sending OTP');
+                }
+            });
+        });
+
+        $('#verify-otp-form').on('submit', function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: '/verify-otp',
+                method: 'POST',
+                data: $(this).serialize(),
+                success: function(response) {
+                    alert(response.message);
+                },
+                error: function(response) {
+                    alert('Error verifying OTP');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
